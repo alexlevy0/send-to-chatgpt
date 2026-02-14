@@ -1,7 +1,7 @@
-console.log("Split Summary: Bridge script loaded.");
+console.log("Send to ChatGPT: Bridge script loaded.");
 
 window.addEventListener("message", (event) => {
-  console.log("Split Summary: Message received", event.data);
+  console.log("Send to ChatGPT: Message received", event.data);
   if (event.data && event.data.action === "fillPrompt" && event.data.url) {
     fillPrompt(event.data.url);
   }
@@ -11,11 +11,11 @@ let lastProcessedUrl = "";
 
 function fillPrompt(url) {
   if (url === lastProcessedUrl) {
-      console.log("Split Summary: URL already processed, skipping.");
+      console.log("Send to ChatGPT: URL already processed, skipping.");
       return;
   }
   
-  console.log("Split Summary: Attempting to fill prompt...");
+  console.log("Send to ChatGPT: Attempting to fill prompt...");
   
   const selectors = [
     '#prompt-textarea',
@@ -31,13 +31,13 @@ function fillPrompt(url) {
   }
 
   if (!textarea) {
-    console.warn("Split Summary: ChatGPT textarea not found.");
+    console.warn("Send to ChatGPT: ChatGPT textarea not found.");
     return;
   }
 
   // Check if already filled (legacy check)
   if (textarea.textContent.includes(url) || (textarea.value && textarea.value.includes(url))) {
-      console.log("Split Summary: Already filled.");
+      console.log("Send to ChatGPT: Already filled.");
       lastProcessedUrl = url; // Mark as processed
       return;
   }
@@ -73,7 +73,7 @@ function fillPrompt(url) {
   
   // Method 2: Fallback if execCommand failed or didn't work as expected
   if (!success && textarea.textContent !== promptText) {
-      console.log("Split Summary: execCommand failed, using fallback...");
+      console.log("Send to ChatGPT: execCommand failed, using fallback...");
       if (textarea.isContentEditable) {
         textarea.innerHTML = `<p>${promptText}</p>`; 
       } else {
@@ -83,7 +83,7 @@ function fillPrompt(url) {
       textarea.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  console.log("Split Summary: Text filled. Waiting for button...");
+  console.log("Send to ChatGPT: Text filled. Waiting for button...");
 
   // Send logic
   // Send logic
@@ -92,10 +92,10 @@ function fillPrompt(url) {
                        document.querySelector('button[aria-label="Send prompt"]');
 
     if (sendButton && !sendButton.disabled) {
-        console.log("Split Summary: Clicking send button.");
+        console.log("Send to ChatGPT: Clicking send button.");
         sendButton.click();
     } else {
-        console.log("Split Summary: Send button not ready/found. Simulating Enter key...");
+        console.log("Send to ChatGPT: Send button not ready/found. Simulating Enter key...");
         
         // Focus is critical
         textarea.focus();

@@ -1,4 +1,4 @@
-# Split Summary Chrome Extension
+# Send to ChatGPT Chrome Extension
 
 A Chrome extension that splits your current tab, opening ChatGPT on the side to automatically summarize the article you're reading.
 

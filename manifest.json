@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Split Summary",
+  "name": "Send to ChatGPT",
   "version": "1.0.0",
   "description": "Split your tab and get an AI summary of any article via ChatGPT",
   "permissions": [
