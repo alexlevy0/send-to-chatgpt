@@ -37,45 +37,63 @@ function fillPrompt(url) {
   const promptText = `Résume-moi cet article de manière concise et structurée : ${url}`;
 
   textarea.focus();
-
-  // Handle contenteditable (ProseMirror used by ChatGPT)
-  if (textarea.isContentEditable) {
-    // React ProseMirror often requires setting innerHTML of the paragraph inside
-    // Or simpler: just set textContent but that might break formatting
-    // Let's try inserting a paragraph
-    textarea.innerHTML = `<p>${promptText}</p>`;
-  } else {
-    textarea.value = promptText;
+  
+  // Method 1: Try execCommand (most native-like)
+  // This usually triggers all necessary internal events for React/ProseMirror
+  const success = document.execCommand('insertText', false, promptText);
+  
+  // Method 2: Fallback if execCommand failed or didn't work as expected
+  if (!success && textarea.textContent !== promptText) {
+      console.log("Split Summary: execCommand failed, using fallback...");
+      if (textarea.isContentEditable) {
+        textarea.innerHTML = `<p>${promptText}</p>`; 
+      } else {
+        textarea.value = promptText;
+      }
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      textarea.dispatchEvent(new Event('change', { bubbles: true }));
   }
-
-  // Dispatch events
-  textarea.dispatchEvent(new Event('input', { bubbles: true }));
-  textarea.dispatchEvent(new Event('change', { bubbles: true }));
 
   console.log("Split Summary: Text filled. Waiting for button...");
 
-  // Send button logic
+  // Send logic
   setTimeout(() => {
     const sendButton = document.querySelector('button[data-testid="send-button"]') || 
                        document.querySelector('button[aria-label="Send prompt"]');
     
-    if (sendButton) {
-        if (!sendButton.disabled) {
-            console.log("Split Summary: Clicking send button.");
-            sendButton.click();
-        } else {
-            console.warn("Split Summary: Send button disabled.");
-        }
+    // Try button click first if available and enabled
+    if (sendButton && !sendButton.disabled) {
+        console.log("Split Summary: Clicking send button.");
+        sendButton.click();
     } else {
-        console.warn("Split Summary: Send button not found. Trying Enter key...");
-        const enterEvent = new KeyboardEvent('keydown', {
+        // Fallback or Force Enter
+        console.log("Split Summary: Simulating Enter key...");
+        
+        const eventInit = {
             bubbles: true,
             cancelable: true,
+            view: window,
             key: 'Enter',
             code: 'Enter',
-            keyCode: 13
-        });
-        textarea.dispatchEvent(enterEvent);
+            location: 0,
+            ctrlKey: false,
+            altKey: false,
+            shiftKey: false,
+            metaKey: false,
+            keyCode: 13,
+            which: 13,
+            charCode: 13,
+            composed: true
+        };
+
+        const keydown = new KeyboardEvent('keydown', eventInit);
+        textarea.dispatchEvent(keydown);
+        
+        const keypress = new KeyboardEvent('keypress', eventInit);
+        textarea.dispatchEvent(keypress);
+        
+        const keyup = new KeyboardEvent('keyup', eventInit);
+        textarea.dispatchEvent(keyup);
     }
-  }, 800);
+  }, 500);
 }
