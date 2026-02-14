@@ -42,7 +42,28 @@ function fillPrompt(url) {
       return;
   }
 
-  const promptText = `Résume-moi cet article de manière concise et structurée : ${url}`;
+  // Detect browser language (e.g., "en-US", "fr-FR")
+  const lang = navigator.language || navigator.userLanguage || 'en';
+  
+  let promptText = `Summarize this article concisely and specifically: ${url}`; // Default English
+
+  if (lang.startsWith('fr')) {
+      promptText = `Résume-moi cet article de manière concise et structurée : ${url}`;
+  } else if (lang.startsWith('es')) {
+      promptText = `Resume este artículo de manera concisa y estructurada: ${url}`;
+  } else if (lang.startsWith('de')) {
+      promptText = `Fasse diesen Artikel kurz und strukturiert zusammen: ${url}`;
+  } else if (lang.startsWith('it')) {
+      promptText = `Riassumi questo articolo in modo conciso e strutturato: ${url}`;
+  } else if (lang.startsWith('pt')) {
+      promptText = `Resuma este artigo de forma concisa e estruturada: ${url}`;
+  } else if (lang.startsWith('zh')) {
+      promptText = `简明扼要地总结这篇文章：${url}`;
+  } else if (lang.startsWith('ja')) {
+      promptText = `この記事を簡潔に構造化して要約してください：${url}`;
+  } else if (lang.startsWith('ru')) {
+      promptText = `Кратко и структурировано перескажи эту статью: ${url}`;
+  }
 
   textarea.focus();
   
