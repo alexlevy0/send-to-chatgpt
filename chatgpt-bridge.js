@@ -7,7 +7,14 @@ window.addEventListener("message", (event) => {
   }
 });
 
+let lastProcessedUrl = "";
+
 function fillPrompt(url) {
+  if (url === lastProcessedUrl) {
+      console.log("Split Summary: URL already processed, skipping.");
+      return;
+  }
+  
   console.log("Split Summary: Attempting to fill prompt...");
   
   const selectors = [
@@ -28,9 +35,10 @@ function fillPrompt(url) {
     return;
   }
 
-  // Check if already filled
+  // Check if already filled (legacy check)
   if (textarea.textContent.includes(url) || (textarea.value && textarea.value.includes(url))) {
       console.log("Split Summary: Already filled.");
+      lastProcessedUrl = url; // Mark as processed
       return;
   }
 
@@ -88,5 +96,7 @@ function fillPrompt(url) {
         textarea.dispatchEvent(new KeyboardEvent('keyup', eventInit));
     }
     
+    // Mark as successfully processed
+    lastProcessedUrl = url;
   }, 1000);
 }
