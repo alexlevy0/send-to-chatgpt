@@ -57,17 +57,19 @@ function fillPrompt(url) {
   console.log("Split Summary: Text filled. Waiting for button...");
 
   // Send logic
+  // Send logic
   setTimeout(() => {
     const sendButton = document.querySelector('button[data-testid="send-button"]') || 
                        document.querySelector('button[aria-label="Send prompt"]');
-    
-    // Try button click first if available and enabled
+
     if (sendButton && !sendButton.disabled) {
         console.log("Split Summary: Clicking send button.");
         sendButton.click();
     } else {
-        // Fallback or Force Enter
-        console.log("Split Summary: Simulating Enter key...");
+        console.log("Split Summary: Send button not ready/found. Simulating Enter key...");
+        
+        // Focus is critical
+        textarea.focus();
         
         const eventInit = {
             bubbles: true,
@@ -75,25 +77,16 @@ function fillPrompt(url) {
             view: window,
             key: 'Enter',
             code: 'Enter',
-            location: 0,
-            ctrlKey: false,
-            altKey: false,
-            shiftKey: false,
-            metaKey: false,
             keyCode: 13,
             which: 13,
             charCode: 13,
             composed: true
         };
 
-        const keydown = new KeyboardEvent('keydown', eventInit);
-        textarea.dispatchEvent(keydown);
-        
-        const keypress = new KeyboardEvent('keypress', eventInit);
-        textarea.dispatchEvent(keypress);
-        
-        const keyup = new KeyboardEvent('keyup', eventInit);
-        textarea.dispatchEvent(keyup);
+        textarea.dispatchEvent(new KeyboardEvent('keydown', eventInit));
+        textarea.dispatchEvent(new KeyboardEvent('keypress', eventInit));
+        textarea.dispatchEvent(new KeyboardEvent('keyup', eventInit));
     }
-  }, 500);
+    
+  }, 1000);
 }
