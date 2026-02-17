@@ -1,123 +1,197 @@
-console.log("Send to ChatGPT: Bridge script loaded.");
+/**
+ * chatgpt-bridge.js — Injected into ChatGPT iframe (all_frames: true)
+ *
+ * Listens for postMessage from content.js and fills the ChatGPT prompt
+ * textarea with the user's prompt, supporting replace/append modes
+ * and auto-submit.
+ */
 
-window.addEventListener("message", (event) => {
-  console.log("Send to ChatGPT: Message received", event.data);
-  if (event.data && event.data.action === "fillPrompt" && event.data.url) {
-    fillPrompt(event.data.url);
+console.log('[SendToChatGPT] Bridge script loaded.');
+
+// ─── State ──────────────────────────────────────────────────────
+let lastProcessedPrompt = '';
+
+// ─── i18n: Default Prompt Template ──────────────────────────────
+function getDefaultPromptTemplate() {
+  const lang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+
+  if (lang.startsWith('fr')) return 'Résume ceci de manière concise et structurée : {url}';
+  if (lang.startsWith('es')) return 'Resume esto de manera concisa y estructurada: {url}';
+  if (lang.startsWith('de')) return 'Fasse dies kurz und strukturiert zusammen: {url}';
+  if (lang.startsWith('it')) return 'Riassumi in modo conciso e strutturato: {url}';
+  if (lang.startsWith('pt')) return 'Resuma de forma concisa e estruturada: {url}';
+  if (lang.startsWith('zh')) return '简明扼要地总结这个内容：{url}';
+  if (lang.startsWith('ja')) return 'これを簡潔に構造化して要約してください：{url}';
+  if (lang.startsWith('ru')) return 'Кратко и структурировано перескажи: {url}';
+
+  return 'Summarize this concisely: {url}';
+}
+
+// ─── Message Listener ───────────────────────────────────────────
+window.addEventListener('message', (event) => {
+  if (!event.data || event.data.action !== 'fillPrompt') return;
+
+  const {
+    url = '',
+    selection = '',
+    promptTemplate,
+    autoSubmit = false,
+    contentBehavior = 'replace',
+    force = false
+  } = event.data;
+
+  // Build the final prompt from the template
+  const template = promptTemplate || getDefaultPromptTemplate();
+  let finalPrompt;
+
+  if (selection && !template.includes('{selection}')) {
+    // Selection was provided but the template has no {selection} placeholder.
+    // Use the selection directly as the prompt (this is the "send selection" shortcut).
+    finalPrompt = selection;
+  } else {
+    finalPrompt = template
+      .replace(/\{url\}/g, url)
+      .replace(/\{selection\}/g, selection);
   }
-});
 
-let lastProcessedUrl = "";
-
-function fillPrompt(url) {
-  if (url === lastProcessedUrl) {
-      console.log("Send to ChatGPT: URL already processed, skipping.");
-      return;
-  }
-  
-  console.log("Send to ChatGPT: Attempting to fill prompt...");
-  
-  const selectors = [
-    '#prompt-textarea',
-    'div[contenteditable="true"]',
-    'textarea[data-id="root"]',
-    'div[id="prompt-textarea"]'
-  ];
-
-  let textarea = null;
-  for (const selector of selectors) {
-    textarea = document.querySelector(selector);
-    if (textarea) break;
-  }
-
-  if (!textarea) {
-    console.warn("Send to ChatGPT: ChatGPT textarea not found.");
+  // Skip if already processed (unless forced)
+  if (!force && finalPrompt === lastProcessedPrompt) {
+    console.log('[SendToChatGPT] Prompt already processed, skipping.');
     return;
   }
 
-  // Check if already filled (legacy check)
-  if (textarea.textContent.includes(url) || (textarea.value && textarea.value.includes(url))) {
-      console.log("Send to ChatGPT: Already filled.");
-      lastProcessedUrl = url; // Mark as processed
-      return;
+  console.log('[SendToChatGPT] Filling prompt:', finalPrompt.substring(0, 80) + '…');
+  fillPrompt(finalPrompt, contentBehavior, autoSubmit);
+  lastProcessedPrompt = finalPrompt;
+
+  // Acknowledge receipt to stop the retry loop in content.js
+  window.parent.postMessage({ action: 'fillPromptAck' }, '*');
+});
+
+// ─── Find Textarea ──────────────────────────────────────────────
+function findTextarea() {
+  const selectors = [
+    '#prompt-textarea',
+    'div#prompt-textarea',
+    'div[contenteditable="true"]',
+    'textarea[data-id="root"]',
+    'textarea'
+  ];
+
+  for (const selector of selectors) {
+    const el = document.querySelector(selector);
+    if (el) return el;
   }
 
-  // Detect browser language (e.g., "en-US", "fr-FR")
-  const lang = navigator.language || navigator.userLanguage || 'en';
-  
-  let promptText = `Summarize this article concisely and specifically: ${url}`; // Default English
+  return null;
+}
 
-  if (lang.startsWith('fr')) {
-      promptText = `Résume-moi cet article de manière concise et structurée : ${url}`;
-  } else if (lang.startsWith('es')) {
-      promptText = `Resume este artículo de manera concisa y estructurada: ${url}`;
-  } else if (lang.startsWith('de')) {
-      promptText = `Fasse diesen Artikel kurz und strukturiert zusammen: ${url}`;
-  } else if (lang.startsWith('it')) {
-      promptText = `Riassumi questo articolo in modo conciso e strutturato: ${url}`;
-  } else if (lang.startsWith('pt')) {
-      promptText = `Resuma este artigo de forma concisa e estruturada: ${url}`;
-  } else if (lang.startsWith('zh')) {
-      promptText = `简明扼要地总结这篇文章：${url}`;
-  } else if (lang.startsWith('ja')) {
-      promptText = `この記事を簡潔に構造化して要約してください：${url}`;
-  } else if (lang.startsWith('ru')) {
-      promptText = `Кратко и структурировано перескажи эту статью: ${url}`;
+// ─── Fill Prompt ────────────────────────────────────────────────
+function fillPrompt(text, behavior, autoSubmit) {
+  const textarea = findTextarea();
+
+  if (!textarea) {
+    console.warn('[SendToChatGPT] ChatGPT textarea not found. Retrying in 1s…');
+    setTimeout(() => fillPrompt(text, behavior, autoSubmit), 1000);
+    return;
   }
 
   textarea.focus();
-  
-  // Method 1: Try execCommand (most native-like)
-  // This usually triggers all necessary internal events for React/ProseMirror
-  const success = document.execCommand('insertText', false, promptText);
-  
-  // Method 2: Fallback if execCommand failed or didn't work as expected
-  if (!success && textarea.textContent !== promptText) {
-      console.log("Send to ChatGPT: execCommand failed, using fallback...");
-      if (textarea.isContentEditable) {
-        textarea.innerHTML = `<p>${promptText}</p>`; 
-      } else {
-        textarea.value = promptText;
-      }
-      textarea.dispatchEvent(new Event('input', { bubbles: true }));
-      textarea.dispatchEvent(new Event('change', { bubbles: true }));
+
+  if (behavior === 'replace') {
+    // Select all existing content, then replace with new text
+    document.execCommand('selectAll', false, null);
+    const inserted = document.execCommand('insertText', false, text);
+
+    if (!inserted) {
+      // Fallback for browsers/contexts where execCommand doesn't work
+      console.log('[SendToChatGPT] execCommand fallback…');
+      applyFallback(textarea, text);
+    }
+  } else {
+    // Append: move cursor to end, add newline, then insert
+    moveCursorToEnd(textarea);
+    const currentContent = textarea.textContent || textarea.value || '';
+    const prefix = currentContent.length > 0 ? '\n' : '';
+    const inserted = document.execCommand('insertText', false, prefix + text);
+
+    if (!inserted) {
+      console.log('[SendToChatGPT] execCommand fallback (append)…');
+      applyFallback(textarea, currentContent + prefix + text);
+    }
   }
 
-  console.log("Send to ChatGPT: Text filled. Waiting for button...");
+  console.log('[SendToChatGPT] Prompt filled successfully.');
 
-  // Send logic
-  // Send logic
-  setTimeout(() => {
-    const sendButton = document.querySelector('button[data-testid="send-button"]') || 
-                       document.querySelector('button[aria-label="Send prompt"]');
+  // Auto-submit if enabled
+  if (autoSubmit) {
+    setTimeout(() => submitPrompt(textarea), 500);
+  }
+}
 
-    if (sendButton && !sendButton.disabled) {
-        console.log("Send to ChatGPT: Clicking send button.");
-        sendButton.click();
-    } else {
-        console.log("Send to ChatGPT: Send button not ready/found. Simulating Enter key...");
-        
-        // Focus is critical
-        textarea.focus();
-        
-        const eventInit = {
-            bubbles: true,
-            cancelable: true,
-            view: window,
-            key: 'Enter',
-            code: 'Enter',
-            keyCode: 13,
-            which: 13,
-            charCode: 13,
-            composed: true
-        };
+// ─── Fallback Fill ──────────────────────────────────────────────
+function applyFallback(textarea, text) {
+  if (textarea.isContentEditable) {
+    textarea.innerHTML = `<p>${escapeHtml(text)}</p>`;
+  } else {
+    textarea.value = text;
+  }
+  textarea.dispatchEvent(new Event('input', { bubbles: true }));
+  textarea.dispatchEvent(new Event('change', { bubbles: true }));
+}
 
-        textarea.dispatchEvent(new KeyboardEvent('keydown', eventInit));
-        textarea.dispatchEvent(new KeyboardEvent('keypress', eventInit));
-        textarea.dispatchEvent(new KeyboardEvent('keyup', eventInit));
-    }
-    
-    // Mark as successfully processed
-    lastProcessedUrl = url;
-  }, 1000);
+// ─── Move Cursor to End ─────────────────────────────────────────
+function moveCursorToEnd(el) {
+  if (el.isContentEditable) {
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(el);
+    range.collapse(false); // Collapse to end
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else if (typeof el.setSelectionRange === 'function') {
+    const len = (el.value || '').length;
+    el.setSelectionRange(len, len);
+  }
+}
+
+// ─── Submit Prompt ──────────────────────────────────────────────
+function submitPrompt(textarea) {
+  // Try finding the send button
+  const sendButton =
+    document.querySelector('button[data-testid="send-button"]') ||
+    document.querySelector('button[aria-label="Send prompt"]') ||
+    document.querySelector('button[aria-label="Envoyer le message"]');
+
+  if (sendButton && !sendButton.disabled) {
+    console.log('[SendToChatGPT] Clicking send button.');
+    sendButton.click();
+    return;
+  }
+
+  // Fallback: simulate Enter key
+  console.log('[SendToChatGPT] Send button not found/ready, simulating Enter…');
+  textarea.focus();
+
+  const eventInit = {
+    bubbles: true,
+    cancelable: true,
+    view: window,
+    key: 'Enter',
+    code: 'Enter',
+    keyCode: 13,
+    which: 13,
+    composed: true
+  };
+
+  textarea.dispatchEvent(new KeyboardEvent('keydown', eventInit));
+  textarea.dispatchEvent(new KeyboardEvent('keypress', eventInit));
+  textarea.dispatchEvent(new KeyboardEvent('keyup', eventInit));
+}
+
+// ─── Utilities ──────────────────────────────────────────────────
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }

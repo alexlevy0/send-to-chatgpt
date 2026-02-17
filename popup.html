@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=350">
+  <title>Send to ChatGPT — Settings</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="popup-logo">
+        <img src="icons/icon48.png" alt="Icon" width="28" height="28">
+        <h1>Send to ChatGPT</h1>
+      </div>
+      <span class="popup-version">v2.0</span>
+    </header>
+
+    <!-- Shortcuts Section -->
+    <section class="popup-section">
+      <h2 class="section-title">⌨️ Keyboard Shortcuts</h2>
+
+      <div class="shortcut-row">
+        <label>Send Selection</label>
+        <button id="btn-shortcut-selection" class="shortcut-btn" data-shortcut="selectionShortcut">
+          <span class="shortcut-label">Click to record…</span>
+        </button>
+      </div>
+
+      <div class="shortcut-row">
+        <label>Send URL</label>
+        <button id="btn-shortcut-url" class="shortcut-btn" data-shortcut="urlShortcut">
+          <span class="shortcut-label">Click to record…</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Prompt Template Section -->
+    <section class="popup-section">
+      <h2 class="section-title">📝 Prompt Template</h2>
+      <p class="section-hint">Use <code>{url}</code> and <code>{selection}</code> as placeholders.</p>
+      <textarea id="prompt-template" rows="3" placeholder="Résume ceci : {url}"></textarea>
+    </section>
+
+    <!-- Behavior Section -->
+    <section class="popup-section">
+      <h2 class="section-title">⚙️ Behavior</h2>
+
+      <div class="radio-group">
+        <label class="radio-label">
+          <input type="radio" name="contentBehavior" value="replace" checked>
+          <span class="radio-custom"></span>
+          Replace content
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="contentBehavior" value="append">
+          <span class="radio-custom"></span>
+          Append to existing
+        </label>
+      </div>
+
+      <label class="checkbox-label">
+        <input type="checkbox" id="auto-submit">
+        <span class="checkbox-custom"></span>
+        Auto-submit prompt
+      </label>
+    </section>
+
+    <!-- Auto-save status -->
+    <div id="save-status" class="save-status"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

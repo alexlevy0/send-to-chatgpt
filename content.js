@@ -1,162 +1,238 @@
-let isSplitActive = false;
-let savedRatio = localStorage.getItem('splitSummaryRatio') || 50; // Percentage for the left panel
+/**
+ * content.js — Injected on all pages for "Send to ChatGPT"
+ *
+ * Responsibilities:
+ * 1. Load user settings from chrome.storage.sync.
+ * 2. Listen for keyboard shortcuts and trigger selection/URL capture.
+ * 3. Manage the ChatGPT side panel (create, update, destroy, resize).
+ * 4. Communicate with chatgpt-bridge.js inside the iframe via postMessage.
+ */
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "toggleSplit") {
-    toggleSplit(request.url);
+// ─── State ──────────────────────────────────────────────────────
+let settings = null;
+let panelOpen = false;
+let panelIframe = null;
+let savedWidth = parseInt(localStorage.getItem('sendToChatGPT_panelWidth'), 10) || 450;
+
+// ─── Default Settings ───────────────────────────────────────────
+const DEFAULTS = {
+  selectionShortcut: { ctrlKey: true, altKey: false, shiftKey: true, metaKey: false, key: 'S' },
+  urlShortcut:       { ctrlKey: true, altKey: false, shiftKey: true, metaKey: false, key: 'U' },
+  promptTemplate:    'Résume ceci : {url}',
+  contentBehavior:   'replace',
+  autoSubmit:        true
+};
+
+// ─── Init: Load Settings ────────────────────────────────────────
+chrome.storage.sync.get(DEFAULTS, (result) => {
+  settings = { ...DEFAULTS, ...result };
+  console.log('[SendToChatGPT] Settings loaded:', settings);
+});
+
+// Reactively update settings when changed in popup
+chrome.storage.onChanged.addListener((changes) => {
+  for (const [key, { newValue }] of Object.entries(changes)) {
+    if (settings && key in settings) {
+      settings[key] = newValue;
+    }
+  }
+  console.log('[SendToChatGPT] Settings updated:', settings);
+});
+
+// ─── Shortcut Matching ─────────────────────────────────────────
+function matchesShortcut(event, shortcut) {
+  if (!shortcut || !shortcut.key) return false;
+  return (
+    event.ctrlKey  === !!shortcut.ctrlKey &&
+    event.altKey   === !!shortcut.altKey &&
+    event.shiftKey === !!shortcut.shiftKey &&
+    event.metaKey  === !!shortcut.metaKey &&
+    event.key.toUpperCase() === shortcut.key.toUpperCase()
+  );
+}
+
+// ─── Keyboard Listener ─────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (!settings) return;
+
+  // Ignore if the user is typing in an input/textarea (unless it's our panel)
+  const tag = (e.target.tagName || '').toLowerCase();
+  const isEditable = tag === 'input' || tag === 'textarea' || e.target.isContentEditable;
+  // Still allow shortcuts if the target is inside our panel
+  const inOurPanel = e.target.closest && e.target.closest('#stcg-panel');
+  if (isEditable && !inOurPanel) return;
+
+  // Escape key closes the panel
+  if (e.key === 'Escape' && panelOpen) {
+    e.preventDefault();
+    destroyPanel();
+    return;
+  }
+
+  if (matchesShortcut(e, settings.selectionShortcut)) {
+    e.preventDefault();
+    e.stopPropagation();
+    const selection = window.getSelection().toString().trim();
+    if (!selection) {
+      console.log('[SendToChatGPT] No text selected.');
+      return;
+    }
+    sendToBackground(selection, false);
+  } else if (matchesShortcut(e, settings.urlShortcut)) {
+    e.preventDefault();
+    e.stopPropagation();
+    sendToBackground('', true);
+  }
+}, true); // Capture phase for priority
+
+// ─── Send to Background ────────────────────────────────────────
+function sendToBackground(selection, force) {
+  chrome.runtime.sendMessage({
+    action:          'openWithSelection',
+    url:             window.location.href,
+    selection,
+    promptTemplate:  settings.promptTemplate,
+    autoSubmit:      settings.autoSubmit,
+    contentBehavior: settings.contentBehavior,
+    force
+  });
+}
+
+// ─── Message Listener (from Background) ─────────────────────────
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.action === 'showPanel') {
+    if (panelOpen) {
+      // Update mode: re-send data to existing iframe
+      sendDataToIframe(message);
+    } else {
+      createPanel(message);
+    }
   }
 });
 
-function toggleSplit(currentUrl) {
-  if (isSplitActive) {
-    destroySplit();
-  } else {
-    createSplit(currentUrl);
-  }
-}
+// ─── Panel: Create ──────────────────────────────────────────────
+function createPanel(data) {
+  if (panelOpen) return;
+  panelOpen = true;
 
-function createSplit(url) {
-  if (isSplitActive) return;
-  isSplitActive = true;
-
-  // 1. Move everything currently in body to a wrapper
-  const originalWrapper = document.createElement('div');
-  originalWrapper.id = 'split-summary-original';
-  
-  // Move all body children into the wrapper
-  while (document.body.firstChild) {
-    originalWrapper.appendChild(document.body.firstChild);
-  }
-
-  // 2. Create the main container
-  const container = document.createElement('div');
-  container.id = 'split-summary-container';
-
-  // 3. Create Divider
-  const divider = document.createElement('div');
-  divider.id = 'split-summary-divider';
-
-  // 4. Create ChatGPT Panel
+  // Overlay container
   const panel = document.createElement('div');
-  panel.id = 'split-summary-panel';
+  panel.id = 'stcg-panel';
+
+  // Drag handle (left edge)
+  const handle = document.createElement('div');
+  handle.id = 'stcg-handle';
+
+  // Close button
+  const closeBtn = document.createElement('button');
+  closeBtn.id = 'stcg-close';
+  closeBtn.innerHTML = '✕';
+  closeBtn.title = 'Close panel';
+  closeBtn.addEventListener('click', destroyPanel);
 
   // Iframe
   const iframe = document.createElement('iframe');
-  iframe.src = "https://chatgpt.com";
-  // Important: Sandbox attributes to allow scripts but maintain some security/isolation
-  iframe.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox");
-  
-  // Close Button
-  const closeBtn = document.createElement('button');
-  closeBtn.id = 'split-summary-close';
-  closeBtn.innerHTML = '✕';
-  closeBtn.onclick = destroySplit;
+  iframe.id = 'stcg-iframe';
+  iframe.src = 'https://chatgpt.com';
+  iframe.setAttribute('sandbox',
+    'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox'
+  );
 
+  // Assemble
+  panel.appendChild(handle);
   panel.appendChild(closeBtn);
   panel.appendChild(iframe);
+  document.body.appendChild(panel);
 
-  // 5. Assemble
-  container.appendChild(originalWrapper);
-  container.appendChild(divider);
-  container.appendChild(panel);
-  document.body.appendChild(container);
+  // Apply saved width
+  panel.style.width = savedWidth + 'px';
 
-  // 6. Apply saved ratio
-  setRatio(savedRatio);
+  // Keep reference
+  panelIframe = iframe;
 
-  // 7. Initialize Drag Event
-  initDrag(divider, container);
+  // Wait for iframe to load, then send data
+  // We use a flag to stop retrying once the bridge confirms receipt
+  let promptSent = false;
 
-  // 8. Wait for iframe load to send prompt
-  // We use postMessage to communicate with the bridge script inside the iframe
-  iframe.onload = () => {
-    // Send message immediately after load
-    setTimeout(() => {
-        iframe.contentWindow.postMessage({ action: "fillPrompt", url: url }, "*");
-    }, 2000); // Wait a bit for React to hydrate
-
-    // Retry a few times just in case
-    let attempts = 0;
-    const interval = setInterval(() => {
-        if (!isSplitActive || attempts > 5) {
-            clearInterval(interval);
-            return;
-        }
-        iframe.contentWindow.postMessage({ action: "fillPrompt", url: url }, "*");
-        attempts++;
-    }, 3000);
-  };
-}
-
-function destroySplit() {
-  if (!isSplitActive) return;
-  
-  const container = document.getElementById('split-summary-container');
-  const originalWrapper = document.getElementById('split-summary-original');
-
-  if (container && originalWrapper) {
-    // Restore body
-    while (originalWrapper.firstChild) {
-      document.body.appendChild(originalWrapper.firstChild);
+  // Listen for acknowledgment from the bridge
+  const onBridgeAck = (event) => {
+    if (event.data && event.data.action === 'fillPromptAck') {
+      promptSent = true;
+      window.removeEventListener('message', onBridgeAck);
     }
-    container.remove();
-  }
-  
-  isSplitActive = false;
+  };
+  window.addEventListener('message', onBridgeAck);
+
+  iframe.addEventListener('load', () => {
+    // Initial delay for ChatGPT React hydration
+    setTimeout(() => sendDataToIframe(data), 2500);
+
+    // Retry a few times — stop once the bridge acknowledges
+    let attempts = 0;
+    const retryInterval = setInterval(() => {
+      if (!panelOpen || promptSent || attempts >= 4) {
+        clearInterval(retryInterval);
+        return;
+      }
+      sendDataToIframe(data);
+      attempts++;
+    }, 3000);
+  });
+
+  // Initialize drag resize
+  initResize(handle, panel);
 }
 
-function setRatio(leftPercent) {
-  const container = document.getElementById('split-summary-container');
-  if (!container) return;
-  
-  const p = Math.max(20, Math.min(80, leftPercent)); // Clamp between 20% and 80%
-  const originalWrapper = document.getElementById('split-summary-original');
-  const panel = document.getElementById('split-summary-panel');
-  
-  originalWrapper.style.flexBasis = `${p}%`;
-  panel.style.flexBasis = `${100 - p}%`;
-  
-  localStorage.setItem('splitSummaryRatio', p);
-  savedRatio = p;
+// ─── Panel: Destroy ─────────────────────────────────────────────
+function destroyPanel() {
+  const panel = document.getElementById('stcg-panel');
+  if (panel) panel.remove();
+  panelOpen = false;
+  panelIframe = null;
 }
 
-function initDrag(divider, container) {
+// ─── Panel: Send Data to Iframe ─────────────────────────────────
+function sendDataToIframe(data) {
+  if (!panelIframe || !panelIframe.contentWindow) return;
+
+  panelIframe.contentWindow.postMessage({
+    action:          'fillPrompt',
+    url:             data.url || '',
+    selection:       data.selection || '',
+    promptTemplate:  data.promptTemplate || settings.promptTemplate,
+    autoSubmit:      data.autoSubmit !== undefined ? data.autoSubmit : settings.autoSubmit,
+    contentBehavior: data.contentBehavior || settings.contentBehavior,
+    force:           data.force || false
+  }, '*');
+}
+
+// ─── Panel: Resize via Drag Handle ──────────────────────────────
+function initResize(handle, panel) {
   let isDragging = false;
 
-  divider.addEventListener('mousedown', (e) => {
+  handle.addEventListener('mousedown', (e) => {
     isDragging = true;
-    divider.classList.add('dragging');
-    e.preventDefault(); // Prevent text selection
-    
-    // Transparent overlay to prevent iframe stealing mouse events
+    e.preventDefault();
+
+    // Overlay to prevent iframe stealing mouse events during drag
     const overlay = document.createElement('div');
-    overlay.id = 'split-drag-overlay';
-    overlay.style.position = 'fixed';
-    overlay.style.top = 0;
-    overlay.style.left = 0;
-    overlay.style.width = '100vw';
-    overlay.style.height = '100vh';
-    overlay.style.zIndex = '2147483650';
-    overlay.style.cursor = 'col-resize';
+    overlay.id = 'stcg-drag-overlay';
     document.body.appendChild(overlay);
   });
 
   document.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
-    
-    const windowWidth = window.innerWidth;
-    const x = e.clientX;
-    const percent = (x / windowWidth) * 100;
-    
-    setRatio(percent);
+    const newWidth = window.innerWidth - e.clientX;
+    const clamped = Math.max(300, Math.min(window.innerWidth * 0.8, newWidth));
+    panel.style.width = clamped + 'px';
+    savedWidth = clamped;
+    localStorage.setItem('sendToChatGPT_panelWidth', String(clamped));
   });
 
   document.addEventListener('mouseup', () => {
-    if (isDragging) {
-      isDragging = false;
-      divider.classList.remove('dragging');
-      const overlay = document.getElementById('split-drag-overlay');
-      if (overlay) overlay.remove();
-    }
+    if (!isDragging) return;
+    isDragging = false;
+    const overlay = document.getElementById('stcg-drag-overlay');
+    if (overlay) overlay.remove();
   });
 }

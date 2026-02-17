@@ -1,20 +1,22 @@
 {
   "manifest_version": 3,
   "name": "Send to ChatGPT",
-  "version": "1.0.0",
-  "description": "Split your tab and get an AI summary of any article via ChatGPT",
+  "version": "2.0.0",
+  "description": "Send selected text or the current URL to a ChatGPT sidebar via configurable keyboard shortcuts.",
   "permissions": [
     "activeTab",
     "scripting",
-    "declarativeNetRequest",
-    "cookies"
+    "storage",
+    "cookies",
+    "declarativeNetRequest"
   ],
   "host_permissions": [
     "*://chatgpt.com/*",
     "*://*.openai.com/*"
   ],
   "action": {
-    "default_title": "Split & Summarize",
+    "default_popup": "popup.html",
+    "default_title": "Send to ChatGPT — Settings",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
