@@ -36,11 +36,27 @@
       </div>
     </section>
 
-    <!-- Prompt Template Section -->
+    <!-- Prompt Templates Section -->
     <section class="popup-section">
-      <h2 class="section-title">📝 Prompt Template</h2>
-      <p class="section-hint">Use <code>{url}</code> and <code>{selection}</code> as placeholders.</p>
-      <textarea id="prompt-template" rows="3" placeholder="Résume ceci : {url}"></textarea>
+      <h2 class="section-title">📝 Prompt Templates</h2>
+
+      <div class="template-card">
+        <div class="template-header">
+          <span class="template-icon">🔗</span>
+          <span class="template-name">URL Shortcut</span>
+        </div>
+        <p class="section-hint">Sent when you use the URL shortcut. Use <code>{url}</code> as placeholder.</p>
+        <textarea id="url-prompt-template" rows="2"></textarea>
+      </div>
+
+      <div class="template-card">
+        <div class="template-header">
+          <span class="template-icon">✂️</span>
+          <span class="template-name">Selection Shortcut</span>
+        </div>
+        <p class="section-hint">Sent when you use the selection shortcut. Use <code>{selection}</code> and <code>{url}</code>.</p>
+        <textarea id="selection-prompt-template" rows="2"></textarea>
+      </div>
     </section>
 
     <!-- Behavior Section -->

@@ -11,9 +11,9 @@ console.log('[SendToChatGPT] Bridge script loaded.');
 // ─── State ──────────────────────────────────────────────────────
 let lastProcessedPrompt = '';
 
-// ─── i18n: Default Prompt Template ──────────────────────────────
-function getDefaultPromptTemplate() {
-  const lang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+// ─── i18n: Default Prompt Templates ─────────────────────────────
+function getDefaultUrlTemplate() {
+  const lang = (navigator.language || 'en').toLowerCase();
 
   if (lang.startsWith('fr')) return 'Résume ceci de manière concise et structurée : {url}';
   if (lang.startsWith('es')) return 'Resume esto de manera concisa y estructurada: {url}';
@@ -25,6 +25,21 @@ function getDefaultPromptTemplate() {
   if (lang.startsWith('ru')) return 'Кратко и структурировано перескажи: {url}';
 
   return 'Summarize this concisely: {url}';
+}
+
+function getDefaultSelectionTemplate() {
+  const lang = (navigator.language || 'en').toLowerCase();
+
+  if (lang.startsWith('fr')) return 'Explique et analyse ce texte :\n\n{selection}';
+  if (lang.startsWith('es')) return 'Explica y analiza este texto:\n\n{selection}';
+  if (lang.startsWith('de')) return 'Erkläre und analysiere diesen Text:\n\n{selection}';
+  if (lang.startsWith('it')) return 'Spiega e analizza questo testo:\n\n{selection}';
+  if (lang.startsWith('pt')) return 'Explique e analise este texto:\n\n{selection}';
+  if (lang.startsWith('zh')) return '解释和分析这段文字：\n\n{selection}';
+  if (lang.startsWith('ja')) return 'このテキストを説明・分析してください：\n\n{selection}';
+  if (lang.startsWith('ru')) return 'Объясни и проанализируй этот текст:\n\n{selection}';
+
+  return 'Explain and analyze this text:\n\n{selection}';
 }
 
 // ─── Message Listener ───────────────────────────────────────────
@@ -41,18 +56,14 @@ window.addEventListener('message', (event) => {
   } = event.data;
 
   // Build the final prompt from the template
-  const template = promptTemplate || getDefaultPromptTemplate();
-  let finalPrompt;
-
-  if (selection && !template.includes('{selection}')) {
-    // Selection was provided but the template has no {selection} placeholder.
-    // Use the selection directly as the prompt (this is the "send selection" shortcut).
-    finalPrompt = selection;
-  } else {
-    finalPrompt = template
-      .replace(/\{url\}/g, url)
-      .replace(/\{selection\}/g, selection);
-  }
+  // content.js now sends the correct template for each shortcut type
+  const defaultTemplate = selection
+    ? getDefaultSelectionTemplate()
+    : getDefaultUrlTemplate();
+  const template = promptTemplate || defaultTemplate;
+  const finalPrompt = template
+    .replaceAll('{url}', url)
+    .replaceAll('{selection}', selection);
 
   // Skip if already processed (unless forced)
   if (!force && finalPrompt === lastProcessedPrompt) {

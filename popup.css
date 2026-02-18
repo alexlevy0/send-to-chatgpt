@@ -132,6 +132,53 @@ body {
   50% { box-shadow: 0 0 12px 2px rgba(116, 185, 255, 0.25); }
 }
 
+/* ===== Template Cards ===== */
+.template-card {
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 3px solid rgba(116, 185, 255, 0.4);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.2s;
+}
+
+.template-card:hover {
+  border-left-color: #74b9ff;
+}
+
+.template-card:last-child {
+  border-left-color: rgba(162, 155, 254, 0.4);
+}
+
+.template-card:last-child:hover {
+  border-left-color: #a29bfe;
+}
+
+.template-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.template-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.template-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c0c0d4;
+  letter-spacing: 0.2px;
+}
+
+.template-card textarea {
+  min-height: 44px;
+}
+
 /* ===== Textarea ===== */
 textarea {
   width: 100%;

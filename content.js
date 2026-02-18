@@ -16,11 +16,12 @@ let savedWidth = parseInt(localStorage.getItem('sendToChatGPT_panelWidth'), 10) 
 
 // ─── Default Settings ───────────────────────────────────────────
 const DEFAULTS = {
-  selectionShortcut: { ctrlKey: true, altKey: false, shiftKey: true, metaKey: false, key: 'S' },
-  urlShortcut:       { ctrlKey: true, altKey: false, shiftKey: true, metaKey: false, key: 'U' },
-  promptTemplate:    'Résume ceci : {url}',
-  contentBehavior:   'replace',
-  autoSubmit:        true
+  selectionShortcut:        { ctrlKey: true, altKey: false, shiftKey: true, metaKey: false, key: 'S' },
+  urlShortcut:              { ctrlKey: true, altKey: false, shiftKey: true, metaKey: false, key: 'U' },
+  urlPromptTemplate:        'Summarize this concisely: {url}',
+  selectionPromptTemplate:  'Explain and analyze this text:\n\n{selection}',
+  contentBehavior:          'replace',
+  autoSubmit:               true
 };
 
 // ─── Init: Load Settings ────────────────────────────────────────
@@ -77,21 +78,21 @@ document.addEventListener('keydown', (e) => {
       console.log('[SendToChatGPT] No text selected.');
       return;
     }
-    sendToBackground(selection, false);
+    sendToBackground(selection, false, settings.selectionPromptTemplate);
   } else if (matchesShortcut(e, settings.urlShortcut)) {
     e.preventDefault();
     e.stopPropagation();
-    sendToBackground('', true);
+    sendToBackground('', true, settings.urlPromptTemplate);
   }
 }, true); // Capture phase for priority
 
 // ─── Send to Background ────────────────────────────────────────
-function sendToBackground(selection, force) {
+function sendToBackground(selection, force, promptTemplate) {
   chrome.runtime.sendMessage({
     action:          'openWithSelection',
     url:             window.location.href,
     selection,
-    promptTemplate:  settings.promptTemplate,
+    promptTemplate,
     autoSubmit:      settings.autoSubmit,
     contentBehavior: settings.contentBehavior,
     force

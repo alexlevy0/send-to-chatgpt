@@ -1,34 +1,63 @@
 /**
  * popup.js — Settings UI for "Send to ChatGPT"
  *
- * Manages shortcut recording, prompt template, behavior options,
- * and auto-persistence via chrome.storage.sync (no Save button).
+ * Manages shortcut recording, dual prompt templates, behavior options,
+ * and auto-persistence via chrome.storage.sync.
  */
+
+// ─── i18n Default Templates ────────────────────────────────────
+function getDefaultUrlTemplate() {
+  const lang = (navigator.language || 'en').toLowerCase();
+  if (lang.startsWith('fr')) return 'Résume ceci de manière concise et structurée : {url}';
+  if (lang.startsWith('es')) return 'Resume esto de manera concisa y estructurada: {url}';
+  if (lang.startsWith('de')) return 'Fasse dies kurz und strukturiert zusammen: {url}';
+  if (lang.startsWith('it')) return 'Riassumi in modo conciso e strutturato: {url}';
+  if (lang.startsWith('pt')) return 'Resuma de forma concisa e estruturada: {url}';
+  if (lang.startsWith('zh')) return '简明扼要地总结这个内容：{url}';
+  if (lang.startsWith('ja')) return 'これを簡潔に構造化して要約してください：{url}';
+  if (lang.startsWith('ru')) return 'Кратко и структурировано перескажи: {url}';
+  return 'Summarize this concisely: {url}';
+}
+
+function getDefaultSelectionTemplate() {
+  const lang = (navigator.language || 'en').toLowerCase();
+  if (lang.startsWith('fr')) return 'Explique et analyse ce texte :\n\n{selection}';
+  if (lang.startsWith('es')) return 'Explica y analiza este texto:\n\n{selection}';
+  if (lang.startsWith('de')) return 'Erkläre und analysiere diesen Text:\n\n{selection}';
+  if (lang.startsWith('it')) return 'Spiega e analizza questo testo:\n\n{selection}';
+  if (lang.startsWith('pt')) return 'Explique e analise este texto:\n\n{selection}';
+  if (lang.startsWith('zh')) return '解释和分析这段文字：\n\n{selection}';
+  if (lang.startsWith('ja')) return 'このテキストを説明・分析してください：\n\n{selection}';
+  if (lang.startsWith('ru')) return 'Объясни и проанализируй этот текст:\n\n{selection}';
+  return 'Explain and analyze this text:\n\n{selection}';
+}
 
 // ─── Default Settings ───────────────────────────────────────────
 const DEFAULTS = {
-  selectionShortcut: { ctrlKey: true, altKey: false, shiftKey: true, metaKey: false, key: 'S' },
-  urlShortcut:       { ctrlKey: true, altKey: false, shiftKey: true, metaKey: false, key: 'U' },
-  promptTemplate:    'Résume ceci : {url}',
-  contentBehavior:   'replace',
-  autoSubmit:        true
+  selectionShortcut:        { ctrlKey: true, altKey: false, shiftKey: true, metaKey: false, key: 'S' },
+  urlShortcut:              { ctrlKey: true, altKey: false, shiftKey: true, metaKey: false, key: 'U' },
+  urlPromptTemplate:        getDefaultUrlTemplate(),
+  selectionPromptTemplate:  getDefaultSelectionTemplate(),
+  contentBehavior:          'replace',
+  autoSubmit:               true
 };
 
 // ─── DOM References ─────────────────────────────────────────────
-const btnSelectionShortcut = document.getElementById('btn-shortcut-selection');
-const btnUrlShortcut       = document.getElementById('btn-shortcut-url');
-const promptTemplateEl     = document.getElementById('prompt-template');
-const autoSubmitEl         = document.getElementById('auto-submit');
-const saveStatusEl         = document.getElementById('save-status');
+const btnSelectionShortcut      = document.getElementById('btn-shortcut-selection');
+const btnUrlShortcut            = document.getElementById('btn-shortcut-url');
+const urlPromptTemplateEl       = document.getElementById('url-prompt-template');
+const selectionPromptTemplateEl = document.getElementById('selection-prompt-template');
+const autoSubmitEl              = document.getElementById('auto-submit');
+const saveStatusEl              = document.getElementById('save-status');
 
 // ─── State ──────────────────────────────────────────────────────
 let currentSettings = { ...DEFAULTS };
 let activeRecorder  = null;
-let saveTimeout     = null; // Debounce timer for auto-save
+let saveTimeout     = null;
 
 // ─── Shortcut Formatting ────────────────────────────────────────
 function formatShortcut(shortcut) {
-  if (!shortcut || !shortcut.key) return 'Not set';
+  if (!shortcut?.key) return 'Not set';
   const parts = [];
   if (shortcut.ctrlKey)  parts.push('Ctrl');
   if (shortcut.altKey)   parts.push('Alt');
@@ -46,11 +75,12 @@ function autoSave() {
     const behaviorRadio = document.querySelector('input[name="contentBehavior"]:checked');
 
     const settings = {
-      selectionShortcut: currentSettings.selectionShortcut,
-      urlShortcut:       currentSettings.urlShortcut,
-      promptTemplate:    promptTemplateEl.value.trim() || DEFAULTS.promptTemplate,
-      contentBehavior:   behaviorRadio ? behaviorRadio.value : 'replace',
-      autoSubmit:        autoSubmitEl.checked
+      selectionShortcut:        currentSettings.selectionShortcut,
+      urlShortcut:              currentSettings.urlShortcut,
+      urlPromptTemplate:        urlPromptTemplateEl.value.trim() || DEFAULTS.urlPromptTemplate,
+      selectionPromptTemplate:  selectionPromptTemplateEl.value.trim() || DEFAULTS.selectionPromptTemplate,
+      contentBehavior:          behaviorRadio ? behaviorRadio.value : 'replace',
+      autoSubmit:               autoSubmitEl.checked
     };
 
     chrome.storage.sync.set(settings, () => {
@@ -62,7 +92,7 @@ function autoSave() {
         currentSettings = { ...settings };
       }
     });
-  }, 400); // 400ms debounce
+  }, 400);
 }
 
 function showStatus(text, type) {
@@ -81,7 +111,8 @@ function populateUI(settings) {
   btnUrlShortcut.querySelector('.shortcut-label').textContent =
     formatShortcut(settings.urlShortcut);
 
-  promptTemplateEl.value = settings.promptTemplate || DEFAULTS.promptTemplate;
+  urlPromptTemplateEl.value       = settings.urlPromptTemplate       || DEFAULTS.urlPromptTemplate;
+  selectionPromptTemplateEl.value = settings.selectionPromptTemplate || DEFAULTS.selectionPromptTemplate;
 
   const behaviorRadio = document.querySelector(
     `input[name="contentBehavior"][value="${settings.contentBehavior || 'replace'}"]`
@@ -107,8 +138,6 @@ function stopRecording() {
 
 function handleRecordKeydown(e) {
   if (!activeRecorder) return;
-
-  // Ignore lone modifier keys
   if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) return;
 
   e.preventDefault();
@@ -128,7 +157,7 @@ function handleRecordKeydown(e) {
   if (btn) btn.querySelector('.shortcut-label').textContent = formatShortcut(shortcut);
 
   stopRecording();
-  autoSave(); // Save immediately after recording a shortcut
+  autoSave();
 }
 
 // ─── Event Listeners ────────────────────────────────────────────
@@ -142,8 +171,9 @@ btnUrlShortcut.addEventListener('click', () => {
 
 document.addEventListener('keydown', handleRecordKeydown, true);
 
-// Auto-save on any change to form inputs
-promptTemplateEl.addEventListener('input', autoSave);
+// Auto-save on any change
+urlPromptTemplateEl.addEventListener('input', autoSave);
+selectionPromptTemplateEl.addEventListener('input', autoSave);
 autoSubmitEl.addEventListener('change', autoSave);
 document.querySelectorAll('input[name="contentBehavior"]').forEach(radio => {
   radio.addEventListener('change', autoSave);
