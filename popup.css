@@ -1,4 +1,8 @@
-/* ===== Global Reset & Base ===== */
+/* ============================================================
+   popup.css — Glassmorphism Accordion Settings UI
+   ============================================================ */
+
+/* ─── Reset & Base ───────────────────────────────────────────── */
 * {
   margin: 0;
   padding: 0;
@@ -6,214 +10,345 @@
 }
 
 body {
-  width: 350px;
+  width: 440px;
+  min-height: 320px;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: #1a1a2e;
-  color: #e0e0e0;
-  font-size: 13px;
-  line-height: 1.5;
+  background: rgba(16, 16, 30, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  color: #e0e0e8;
+  font-size: 14px;
+  line-height: 1.55;
+  overflow-y: auto;
 }
 
-/* ===== Container ===== */
+/* Subtle animated gradient bg shimmer */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 20%, rgba(116, 185, 255, 0.06) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 80%, rgba(162, 155, 254, 0.05) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Container ──────────────────────────────────────────────── */
 .popup-container {
+  position: relative;
+  z-index: 1;
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
-/* ===== Header ===== */
-.popup-header {
+/* ─── Accordion ──────────────────────────────────────────────── */
+.accordion {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.accordion:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.accordion.open {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2),
+              0 0 0 1px rgba(116, 185, 255, 0.08);
+}
+
+/* ─── Accordion Trigger ─────────────────────────────────────── */
+.accordion-trigger {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  color: #e0e0e8;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s ease;
+  user-select: none;
 }
 
-.popup-logo {
+.accordion-trigger:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.accordion-trigger:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.accordion-left {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.popup-logo h1 {
+.accordion-icon {
+  font-size: 18px;
+  line-height: 1;
+  filter: drop-shadow(0 0 6px rgba(116, 185, 255, 0.2));
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.accordion.open .accordion-icon {
+  transform: scale(1.15);
+}
+
+.accordion-title {
   font-size: 15px;
   font-weight: 600;
-  background: linear-gradient(135deg, #74b9ff, #a29bfe);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  letter-spacing: 0.1px;
 }
 
-.popup-version {
-  font-size: 11px;
-  color: #666;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 2px 8px;
-  border-radius: 10px;
+.accordion-chevron {
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.35);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+              color 0.2s;
 }
 
-/* ===== Sections ===== */
-.popup-section {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  padding: 12px;
+.accordion.open .accordion-chevron {
+  transform: rotate(180deg);
+  color: #74b9ff;
+}
+
+/* ─── Accordion Body (animated height) ───────────────────────── */
+.accordion-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.3s ease;
+  opacity: 0;
+}
+
+.accordion.open .accordion-body {
+  opacity: 1;
+}
+
+.accordion-content {
+  padding: 2px 16px 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
-.section-title {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #a0a0b8;
+/* Stagger children animation */
+.accordion.open .accordion-content > * {
+  animation: slideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.section-hint {
-  font-size: 11px;
-  color: #666;
+.accordion.open .accordion-content > *:nth-child(1) { animation-delay: 0.04s; }
+.accordion.open .accordion-content > *:nth-child(2) { animation-delay: 0.08s; }
+.accordion.open .accordion-content > *:nth-child(3) { animation-delay: 0.12s; }
+.accordion.open .accordion-content > *:nth-child(4) { animation-delay: 0.16s; }
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.section-hint code {
-  background: rgba(116, 185, 255, 0.15);
-  color: #74b9ff;
-  padding: 1px 5px;
-  border-radius: 4px;
-  font-size: 11px;
-}
-
-/* ===== Shortcut Buttons ===== */
+/* ─── Shortcut Rows ──────────────────────────────────────────── */
 .shortcut-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
 }
 
-.shortcut-row label {
-  font-size: 13px;
+.shortcut-label-text {
+  font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
 }
 
 .shortcut-btn {
   flex: 1;
-  max-width: 180px;
-  padding: 8px 12px;
+  max-width: 200px;
+  padding: 9px 14px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: #ccc;
-  font-size: 12px;
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  border-radius: 10px;
+  color: #d0d0e0;
+  font-size: 13px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.shortcut-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(116, 185, 255, 0.08), rgba(162, 155, 254, 0.08));
+  opacity: 0;
+  transition: opacity 0.25s;
 }
 
 .shortcut-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(116, 185, 255, 0.3);
+  border-color: rgba(116, 185, 255, 0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.shortcut-btn:hover::after {
+  opacity: 1;
 }
 
 .shortcut-btn.recording {
-  background: rgba(116, 185, 255, 0.15);
+  background: rgba(116, 185, 255, 0.12);
   border-color: #74b9ff;
   color: #74b9ff;
-  animation: pulse-glow 1.5s ease-in-out infinite;
+  animation: pulse-glow 1.8s ease-in-out infinite;
+  transform: scale(1.02);
 }
 
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(116, 185, 255, 0); }
-  50% { box-shadow: 0 0 12px 2px rgba(116, 185, 255, 0.25); }
+  50% { box-shadow: 0 0 16px 3px rgba(116, 185, 255, 0.2); }
 }
 
-/* ===== Template Cards ===== */
+/* ─── Template Cards ─────────────────────────────────────────── */
 .template-card {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-left: 3px solid rgba(116, 185, 255, 0.4);
-  border-radius: 8px;
-  padding: 10px 12px;
+  border-radius: 10px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  transition: border-color 0.2s;
+  gap: 8px;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
 }
 
-.template-card:hover {
-  border-left-color: #74b9ff;
+.template-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 2px;
+  transition: all 0.25s;
 }
 
-.template-card:last-child {
-  border-left-color: rgba(162, 155, 254, 0.4);
+.template-card[data-accent="blue"]::before {
+  background: rgba(116, 185, 255, 0.4);
 }
 
-.template-card:last-child:hover {
-  border-left-color: #a29bfe;
+.template-card[data-accent="purple"]::before {
+  background: rgba(162, 155, 254, 0.4);
+}
+
+.template-card:hover::before {
+  top: 4px;
+  bottom: 4px;
+}
+
+.template-card[data-accent="blue"]:hover::before {
+  background: #74b9ff;
+  box-shadow: 0 0 10px rgba(116, 185, 255, 0.3);
+}
+
+.template-card[data-accent="purple"]:hover::before {
+  background: #a29bfe;
+  box-shadow: 0 0 10px rgba(162, 155, 254, 0.3);
 }
 
 .template-header {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .template-icon {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1;
 }
 
 .template-name {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  color: #c0c0d4;
+  color: #c8c8e0;
   letter-spacing: 0.2px;
 }
 
-.template-card textarea {
-  min-height: 44px;
+.field-hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
 }
 
-/* ===== Textarea ===== */
+.field-hint code {
+  background: rgba(116, 185, 255, 0.12);
+  color: #74b9ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+/* ─── Textarea ───────────────────────────────────────────────── */
 textarea {
   width: 100%;
-  padding: 10px;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
-  color: #e0e0e0;
-  font-size: 12px;
-  font-family: 'Consolas', 'Fira Code', monospace;
+  color: #e0e0e8;
+  font-size: 13px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
   resize: vertical;
-  min-height: 60px;
-  transition: border-color 0.2s;
+  min-height: 48px;
+  transition: border-color 0.25s, box-shadow 0.25s;
+  line-height: 1.5;
 }
 
 textarea:focus {
   outline: none;
-  border-color: rgba(116, 185, 255, 0.5);
+  border-color: rgba(116, 185, 255, 0.45);
+  box-shadow: 0 0 0 3px rgba(116, 185, 255, 0.08);
 }
 
-/* ===== Radio Buttons ===== */
+/* ─── Radio Buttons ──────────────────────────────────────────── */
 .radio-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .radio-label,
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 10px;
+  font-size: 14px;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.radio-label:hover,
+.checkbox-label:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .radio-label input[type="radio"],
@@ -222,17 +357,18 @@ textarea:focus {
 }
 
 .radio-custom {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.2);
   position: relative;
-  transition: border-color 0.2s;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   flex-shrink: 0;
 }
 
 .radio-label input[type="radio"]:checked + .radio-custom {
   border-color: #74b9ff;
+  box-shadow: 0 0 8px rgba(116, 185, 255, 0.2);
 }
 
 .radio-label input[type="radio"]:checked + .radio-custom::after {
@@ -240,51 +376,91 @@ textarea:focus {
   position: absolute;
   top: 3px;
   left: 3px;
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #74b9ff;
+  animation: radioScale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes radioScale {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
 }
 
 .checkbox-custom {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
   border: 2px solid rgba(255, 255, 255, 0.2);
   position: relative;
-  transition: all 0.2s;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   flex-shrink: 0;
 }
 
 .checkbox-label input[type="checkbox"]:checked + .checkbox-custom {
-  background: #74b9ff;
-  border-color: #74b9ff;
+  background: linear-gradient(135deg, #74b9ff, #a29bfe);
+  border-color: transparent;
+  box-shadow: 0 0 10px rgba(116, 185, 255, 0.2);
+  animation: checkBounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes checkBounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25); }
+  100% { transform: scale(1); }
 }
 
 .checkbox-label input[type="checkbox"]:checked + .checkbox-custom::after {
   content: '✓';
   position: absolute;
   top: -1px;
-  left: 2px;
-  font-size: 11px;
-  color: #1a1a2e;
+  left: 3px;
+  font-size: 12px;
+  color: #fff;
   font-weight: bold;
 }
 
-/* ===== Save Button ===== */
+/* ─── Divider ────────────────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 2px 0;
+}
 
-/* ===== Save Status ===== */
+/* ─── Save Status ────────────────────────────────────────────── */
 .save-status {
   text-align: center;
-  font-size: 12px;
-  min-height: 18px;
-  transition: opacity 0.3s;
+  font-size: 13px;
+  min-height: 20px;
+  transition: all 0.3s ease;
+  padding: 0 4px;
 }
 
 .save-status.success {
   color: #55efc4;
+  text-shadow: 0 0 10px rgba(85, 239, 196, 0.2);
 }
 
 .save-status.error {
   color: #ff7675;
+  text-shadow: 0 0 10px rgba(255, 118, 117, 0.2);
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }

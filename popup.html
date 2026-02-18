@@ -2,85 +2,111 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=350">
+  <meta name="viewport" content="width=500">
   <title>Send to ChatGPT — Settings</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="popup-container">
-    <!-- Header -->
-    <header class="popup-header">
-      <div class="popup-logo">
-        <img src="icons/icon48.png" alt="Icon" width="28" height="28">
-        <h1>Send to ChatGPT</h1>
-      </div>
-      <span class="popup-version">v2.0</span>
-    </header>
 
-    <!-- Shortcuts Section -->
-    <section class="popup-section">
-      <h2 class="section-title">⌨️ Keyboard Shortcuts</h2>
-
-      <div class="shortcut-row">
-        <label>Send Selection</label>
-        <button id="btn-shortcut-selection" class="shortcut-btn" data-shortcut="selectionShortcut">
-          <span class="shortcut-label">Click to record…</span>
-        </button>
-      </div>
-
-      <div class="shortcut-row">
-        <label>Send URL</label>
-        <button id="btn-shortcut-url" class="shortcut-btn" data-shortcut="urlShortcut">
-          <span class="shortcut-label">Click to record…</span>
-        </button>
+    <!-- Accordion: Keyboard Shortcuts -->
+    <section class="accordion" data-accordion="shortcuts">
+      <button class="accordion-trigger" type="button">
+        <div class="accordion-left">
+          <span class="accordion-icon">⌨️</span>
+          <span class="accordion-title">Keyboard Shortcuts</span>
+        </div>
+        <span class="accordion-chevron">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </span>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-content">
+          <div class="shortcut-row">
+            <span class="shortcut-label-text">Send Selection</span>
+            <button id="btn-shortcut-selection" class="shortcut-btn" data-shortcut="selectionShortcut">
+              <span class="shortcut-label">Click to record…</span>
+            </button>
+          </div>
+          <div class="shortcut-row">
+            <span class="shortcut-label-text">Send URL</span>
+            <button id="btn-shortcut-url" class="shortcut-btn" data-shortcut="urlShortcut">
+              <span class="shortcut-label">Click to record…</span>
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- Prompt Templates Section -->
-    <section class="popup-section">
-      <h2 class="section-title">📝 Prompt Templates</h2>
-
-      <div class="template-card">
-        <div class="template-header">
-          <span class="template-icon">🔗</span>
-          <span class="template-name">URL Shortcut</span>
+    <!-- Accordion: Prompt Templates -->
+    <section class="accordion" data-accordion="templates">
+      <button class="accordion-trigger" type="button">
+        <div class="accordion-left">
+          <span class="accordion-icon">📝</span>
+          <span class="accordion-title">Prompt Templates</span>
         </div>
-        <p class="section-hint">Sent when you use the URL shortcut. Use <code>{url}</code> as placeholder.</p>
-        <textarea id="url-prompt-template" rows="2"></textarea>
-      </div>
+        <span class="accordion-chevron">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </span>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-content">
+          <div class="template-card" data-accent="blue">
+            <div class="template-header">
+              <span class="template-icon">🔗</span>
+              <span class="template-name">URL Shortcut</span>
+            </div>
+            <p class="field-hint">Use <code>{url}</code> as placeholder.</p>
+            <textarea id="url-prompt-template" rows="2"></textarea>
+          </div>
 
-      <div class="template-card">
-        <div class="template-header">
-          <span class="template-icon">✂️</span>
-          <span class="template-name">Selection Shortcut</span>
+          <div class="template-card" data-accent="purple">
+            <div class="template-header">
+              <span class="template-icon">✂️</span>
+              <span class="template-name">Selection Shortcut</span>
+            </div>
+            <p class="field-hint">Use <code>{selection}</code> and <code>{url}</code>.</p>
+            <textarea id="selection-prompt-template" rows="2"></textarea>
+          </div>
         </div>
-        <p class="section-hint">Sent when you use the selection shortcut. Use <code>{selection}</code> and <code>{url}</code>.</p>
-        <textarea id="selection-prompt-template" rows="2"></textarea>
       </div>
     </section>
 
-    <!-- Behavior Section -->
-    <section class="popup-section">
-      <h2 class="section-title">⚙️ Behavior</h2>
+    <!-- Accordion: Behavior -->
+    <section class="accordion" data-accordion="behavior">
+      <button class="accordion-trigger" type="button">
+        <div class="accordion-left">
+          <span class="accordion-icon">⚙️</span>
+          <span class="accordion-title">Behavior</span>
+        </div>
+        <span class="accordion-chevron">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </span>
+      </button>
+      <div class="accordion-body">
+        <div class="accordion-content">
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="contentBehavior" value="replace" checked>
+              <span class="radio-custom"></span>
+              Replace existing content
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="contentBehavior" value="append">
+              <span class="radio-custom"></span>
+              Append to existing
+            </label>
+          </div>
 
-      <div class="radio-group">
-        <label class="radio-label">
-          <input type="radio" name="contentBehavior" value="replace" checked>
-          <span class="radio-custom"></span>
-          Replace content
-        </label>
-        <label class="radio-label">
-          <input type="radio" name="contentBehavior" value="append">
-          <span class="radio-custom"></span>
-          Append to existing
-        </label>
+          <div class="divider"></div>
+
+          <label class="checkbox-label">
+            <input type="checkbox" id="auto-submit">
+            <span class="checkbox-custom"></span>
+            Auto-submit prompt
+          </label>
+        </div>
       </div>
-
-      <label class="checkbox-label">
-        <input type="checkbox" id="auto-submit">
-        <span class="checkbox-custom"></span>
-        Auto-submit prompt
-      </label>
     </section>
 
     <!-- Auto-save status -->

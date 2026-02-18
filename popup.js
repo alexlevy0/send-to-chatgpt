@@ -1,7 +1,7 @@
 /**
  * popup.js — Settings UI for "Send to ChatGPT"
  *
- * Manages shortcut recording, dual prompt templates, behavior options,
+ * Accordion sections, shortcut recording, dual prompt templates,
  * and auto-persistence via chrome.storage.sync.
  */
 
@@ -54,6 +54,43 @@ const saveStatusEl              = document.getElementById('save-status');
 let currentSettings = { ...DEFAULTS };
 let activeRecorder  = null;
 let saveTimeout     = null;
+
+// ─── Accordion Logic ────────────────────────────────────────────
+document.querySelectorAll('.accordion-trigger').forEach(trigger => {
+  trigger.addEventListener('click', () => {
+    const accordion = trigger.closest('.accordion');
+    const body = accordion.querySelector('.accordion-body');
+    const isOpen = accordion.classList.contains('open');
+
+    if (isOpen) {
+      // Close
+      body.style.maxHeight = '0';
+      accordion.classList.remove('open');
+    } else {
+      // Open: compute height, then set it
+      accordion.classList.add('open');
+      body.style.maxHeight = body.scrollHeight + 'px';
+
+      // Re-measure after transitions settle (for textarea resize etc.)
+      setTimeout(() => {
+        if (accordion.classList.contains('open')) {
+          body.style.maxHeight = body.scrollHeight + 'px';
+        }
+      }, 400);
+    }
+  });
+});
+
+// Open the first accordion by default
+const firstAccordion = document.querySelector('.accordion');
+if (firstAccordion) {
+  firstAccordion.classList.add('open');
+  const body = firstAccordion.querySelector('.accordion-body');
+  // Delay to let DOM render
+  requestAnimationFrame(() => {
+    body.style.maxHeight = body.scrollHeight + 'px';
+  });
+}
 
 // ─── Shortcut Formatting ────────────────────────────────────────
 function formatShortcut(shortcut) {
