@@ -44,7 +44,22 @@ function getDefaultSelectionTemplate() {
 
 // ─── Message Listener ───────────────────────────────────────────
 window.addEventListener('message', (event) => {
-  if (!event.data || event.data.action !== 'fillPrompt') return;
+  if (!event.data) return;
+
+  // Clear the textarea when the panel is closed via Escape
+  if (event.data.action === 'clearPrompt') {
+    const textarea = findTextarea();
+    if (textarea) {
+      textarea.value = '';
+      textarea.textContent = '';
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    lastProcessedPrompt = '';
+    console.log('[SendToChatGPT] Prompt cleared.');
+    return;
+  }
+
+  if (event.data.action !== 'fillPrompt') return;
 
   const {
     url = '',
@@ -77,6 +92,22 @@ window.addEventListener('message', (event) => {
 
   // Acknowledge receipt to stop the retry loop in content.js
   window.parent.postMessage({ action: 'fillPromptAck' }, '*');
+});
+
+// ─── Escape key: close panel even when iframe has focus ─────────
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    // Clear the textarea
+    const textarea = findTextarea();
+    if (textarea) {
+      textarea.value = '';
+      textarea.textContent = '';
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    lastProcessedPrompt = '';
+    // Ask the parent (content.js) to close the panel
+    window.parent.postMessage({ action: 'requestClosePanel' }, '*');
+  }
 });
 
 // ─── Find Textarea ──────────────────────────────────────────────

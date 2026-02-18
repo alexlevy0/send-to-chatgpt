@@ -63,9 +63,12 @@ document.addEventListener('keydown', (e) => {
   const inOurPanel = e.target.closest && e.target.closest('#stcg-panel');
   if (isEditable && !inOurPanel) return;
 
-  // Escape key closes the panel
+  // Escape key closes the panel — clear the ChatGPT input first
   if (e.key === 'Escape' && panelOpen) {
     e.preventDefault();
+    if (panelIframe?.contentWindow) {
+      panelIframe.contentWindow.postMessage({ action: 'clearPrompt' }, '*');
+    }
     destroyPanel();
     return;
   }
@@ -99,20 +102,28 @@ function sendToBackground(selection, force, promptTemplate) {
   });
 }
 
+// ─── State for pending panel data (mutable so retries use latest) ─
+let pendingData = null;
+
 // ─── Message Listener (from Background) ─────────────────────────
 chrome.runtime.onMessage.addListener((message) => {
   if (message.action === 'showPanel') {
+    pendingData = message; // Always update to latest data
     if (panelOpen) {
-      // Update mode: re-send data to existing iframe
-      sendDataToIframe(message);
+      // Clear old content first, then fill with new data
+      if (panelIframe?.contentWindow) {
+        panelIframe.contentWindow.postMessage({ action: 'clearPrompt' }, '*');
+      }
+      // Short delay to let the clear take effect before filling
+      setTimeout(() => sendDataToIframe(pendingData), 100);
     } else {
-      createPanel(message);
+      createPanel();
     }
   }
 });
 
 // ─── Panel: Create ──────────────────────────────────────────────
-function createPanel(data) {
+function createPanel() {
   if (panelOpen) return;
   panelOpen = true;
 
@@ -151,13 +162,12 @@ function createPanel(data) {
   // Keep reference
   panelIframe = iframe;
 
-  // Wait for iframe to load, then send data
   // We use a flag to stop retrying once the bridge confirms receipt
   let promptSent = false;
 
   // Listen for acknowledgment from the bridge
   const onBridgeAck = (event) => {
-    if (event.data && event.data.action === 'fillPromptAck') {
+    if (event.data?.action === 'fillPromptAck') {
       promptSent = true;
       window.removeEventListener('message', onBridgeAck);
     }
@@ -166,16 +176,17 @@ function createPanel(data) {
 
   iframe.addEventListener('load', () => {
     // Initial delay for ChatGPT React hydration
-    setTimeout(() => sendDataToIframe(data), 2500);
+    // Always read from pendingData so we use the LATEST data
+    setTimeout(() => sendDataToIframe(pendingData), 2500);
 
-    // Retry a few times — stop once the bridge acknowledges
+    // Retry a few times — always uses latest pendingData
     let attempts = 0;
     const retryInterval = setInterval(() => {
       if (!panelOpen || promptSent || attempts >= 4) {
         clearInterval(retryInterval);
         return;
       }
-      sendDataToIframe(data);
+      sendDataToIframe(pendingData);
       attempts++;
     }, 3000);
   });
@@ -190,22 +201,30 @@ function destroyPanel() {
   if (panel) panel.remove();
   panelOpen = false;
   panelIframe = null;
+  pendingData = null; // Reset so stale data can't leak
 }
 
 // ─── Panel: Send Data to Iframe ─────────────────────────────────
 function sendDataToIframe(data) {
-  if (!panelIframe || !panelIframe.contentWindow) return;
+  if (!data || !panelIframe?.contentWindow) return;
 
   panelIframe.contentWindow.postMessage({
     action:          'fillPrompt',
     url:             data.url || '',
     selection:       data.selection || '',
-    promptTemplate:  data.promptTemplate || settings.promptTemplate,
+    promptTemplate:  data.promptTemplate || '',
     autoSubmit:      data.autoSubmit !== undefined ? data.autoSubmit : settings.autoSubmit,
     contentBehavior: data.contentBehavior || settings.contentBehavior,
     force:           data.force || false
   }, '*');
 }
+
+// ─── Escape from iframe: listen for bridge requesting close ─────
+window.addEventListener('message', (event) => {
+  if (event.data?.action === 'requestClosePanel' && panelOpen) {
+    destroyPanel();
+  }
+});
 
 // ─── Panel: Resize via Drag Handle ──────────────────────────────
 function initResize(handle, panel) {
