@@ -1,47 +1,48 @@
 # Send to ChatGPT Chrome Extension
 
-A Chrome extension that splits your current tab, opening ChatGPT on the side to automatically summarize the article you're reading.
+A powerful Chrome extension that allows you to instantly send selected text or the current page URL to a ChatGPT side panel using customizable keyboard shortcuts.
 
-## Features
+## ✨ Features
 
-- **Split View**: View your article and ChatGPT side-by-side.
-- **Auto-Prompt**: Automatically fills ChatGPT with "Résume-moi cet article : [URL]".
-- **Draggable Divider**: Adjust the width of the panels.
-- **Session Memory**: Remembers your preferred split ratio.
+- **⌨️ Custom Keyboard Shortcuts**: Define your own shortcuts for sending the current URL or selected text (Defaults: `Ctrl+Shift+U` for URL, `Ctrl+Shift+S` for Selection).
+- **📝 Prompt Templates**: Customize exactly how your text is sent to ChatGPT using placeholders (`{url}`, `{selection}`). Includes multi-language default support.
+- **⚙️ Advanced Behavior**: 
+  - Choose whether to **replace** the current ChatGPT input or **append** to it.
+  - Optional **Auto-submit** to instantly send the prompt to ChatGPT.
+- **🌗 Side Panel Interface**: Opens ChatGPT seamlessly on the right side of your screen. 
+  - **Draggable Divider**: Adjust the width of the panel to your liking.
+  - **Memory**: Remembers your preferred panel width.
+  - **Secure Integration**: Automatically patches cookies to keep your existing ChatGPT session active within the panel.
+- **🛠️ Settings UI**: A clean, modern popup interface to manage all your configurations, including a shortcut recorder.
 
-## Installation
+## 🚀 Installation
 
-1.  Clone or download this repository.
-2.  Open Chrome and navigate to `chrome://extensions`.
-3.  Enable **Developer mode** in the top right corner.
-4.  Click **Load unpacked**.
-5.  Select the `split-summary` directory from this project.
+1. Clone or download this repository.
+2. Open Chrome and navigate to `chrome://extensions`.
+3. Enable **Developer mode** in the top right corner.
+4. Click **Load unpacked**.
+5. Select the `send-to-chatgpt` directory from this project.
 
-## Usage
+## 💻 Usage
 
-1.  Navigate to any article or webpage you want to summarize.
-2.  Click the **Split Summary** icon in your extension toolbar.
-3.  The page will split, opening ChatGPT on the right.
-4.  The prompt will be automatically filled and (if possible) sent.
-    -   *Note*: You may need to log in to ChatGPT first.
-5.  To close, click the **X** button or click the extension icon again.
+1. Navigate to any article or webpage you want to interact with.
+2. Ensure you are logged into [ChatGPT](https://chatgpt.com) in another tab if you haven't already.
+3. **Send URL**: Press `Ctrl+Shift+U` (or your configured shortcut) to open ChatGPT and automatically paste the URL with your prompt template.
+4. **Send Selection**: Highlight any text on the page and press `Ctrl+Shift+S` to send the selected text.
+5. **Settings**: Click the extension icon in your toolbar to open the settings popup and customize your templates, shortcuts, and behavior.
+6. **Close**: Press `Escape` or click the `✕` button on the side panel to close it.
 
-## Troubleshooting
-
--   **Prompt not filling?** ChatGPT selectors change often. The extension tries to find the input field, but if OpenAI updates their UI, this feature might temporarily break until updated.
-
-## Permissions Justification
+## 🔒 Permissions Justification
 
 When submitting to the Chrome Web Store, use the following justifications:
 
--   **`activeTab`**: Used to inject the content script and CSS into the current tab *only* when the user clicks the extension icon. This ensures the extension accesses page content only when explicitly triggered by the user.
--   **`scripting`**: used to inject the content script and CSS into the tab when the user clicks the action button. This allows the extension to modify the page layout (creating the split view) dynamically without requiring broad host permissions for every site upfront.
--   **`declarativeNetRequest`**: This permission is critical to allow the extension to display ChatGPT in a side panel (iframe) alongside the user's content. It is used solely to remove the `X-Frame-Options` and `Content-Security-Policy` headers from `chatgpt.com` responses, which otherwise prevent the site from being embedded.
--   **`cookies`**: The extension displays ChatGPT in an iframe. By default, third-party cookie restrictions prevent the user's existing ChatGPT session from working inside this iframe. This permission is used **only** to modify the `SameSite` attribute of specific `chatgpt.com` and `openai.com` cookies to `None`, allowing the user to remain authenticated within the side panel. No cookies are read, stored, or transmitted to any other server.
--   **`Host Permissions`** (`*://chatgpt.com/*`, `*://*.openai.com/*`): Required to:
-    1.  Target modifications (header stripping and cookie patching) specifically to ChatGPT domains.
-    2.  Inject the automation script (`chatgpt-bridge.js`) only into the ChatGPT iframe to handle prompt filling.
+- **`activeTab`**: Allows the extension to read the current tab's URL and selected text only when explicitly triggered by a keyboard shortcut.
+- **`scripting`**: Used to inject the side panel interface (`content.js`) and prompt-filling automation (`chatgpt-bridge.js`) dynamically into the page.
+- **`storage`**: Saves your custom settings (shortcuts, templates, behaviors) and syncs them across your browsers.
+- **`declarativeNetRequest`**: Necessary to remove `X-Frame-Options` and `Content-Security-Policy` headers from `chatgpt.com`, enabling it to be embedded inside the side panel.
+- **`cookies`**: Modifies specific `chatgpt.com` and `openai.com` cookies to `SameSite=None` so your authentication persists within the cross-origin iframe. No cookies are read or collected.
+- **Host Permissions** (`*://chatgpt.com/*`, `*://*.openai.com/*`): Required to target the specific modifications described above strictly to ChatGPT domains.
 
-## Single Purpose Description
+## 🎯 Single Purpose Description
 
-The single purpose of this extension is to **facilitate side-by-side reading and summarization**. It splits the user's current browser tab into two panels: the original article on the left and a ChatGPT interface on the right, automatically prompting ChatGPT to summarize the visible content. It does not perform any other background activities or data collection.
+The single purpose of this extension is to **facilitate side-by-side reading and interaction with ChatGPT**. It splits the user's current browser tab into two panels: the original article on the left and a ChatGPT interface on the right, automatically prompting ChatGPT with the visible content or URL. It does not perform any other background activities or data collection.
