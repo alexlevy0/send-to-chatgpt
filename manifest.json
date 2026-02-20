@@ -1,11 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Send to ChatGPT",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Send selected text or the current URL to a ChatGPT sidebar via configurable keyboard shortcuts.",
   "permissions": [
     "activeTab",
-    "scripting",
     "storage",
     "cookies",
     "declarativeNetRequest"

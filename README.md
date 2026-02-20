@@ -37,7 +37,6 @@ A powerful Chrome extension that allows you to instantly send selected text or t
 When submitting to the Chrome Web Store, use the following justifications:
 
 - **`activeTab`**: Allows the extension to read the current tab's URL and selected text only when explicitly triggered by a keyboard shortcut.
-- **`scripting`**: Used to inject the side panel interface (`content.js`) and prompt-filling automation (`chatgpt-bridge.js`) dynamically into the page.
 - **`storage`**: Saves your custom settings (shortcuts, templates, behaviors) and syncs them across your browsers.
 - **`declarativeNetRequest`**: Necessary to remove `X-Frame-Options` and `Content-Security-Policy` headers from `chatgpt.com`, enabling it to be embedded inside the side panel.
 - **`cookies`**: Modifies specific `chatgpt.com` and `openai.com` cookies to `SameSite=None` so your authentication persists within the cross-origin iframe. No cookies are read or collected.
